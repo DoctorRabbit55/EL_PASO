@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import cdflib  # type: ignore[reportMissingTypeStubs]
 import h5py  # type: ignore[reportMissingTypeStubs]
+import netCDF4
 import numpy as np
 import pandas as pd
 
@@ -168,8 +169,7 @@ def _extract_data_from_files(  # noqa: C901
             case ".txt" | ".asc" | ".csv" | ".tab":
                 new_data = _extract_data_from_ascii(str(file_path), tuple(extraction_infos), pd_read_csv_kwargs)
             case ".nc":
-                msg = "NetCDF reading is not supported yet!"
-                raise NotImplementedError(msg)
+                new_data = _extract_data_from_nc(str(file_path), tuple(extraction_infos))
             case ".h5":
                 new_data = _extract_data_from_h5(str(file_path), tuple(extraction_infos))
             case ".json":
@@ -348,6 +348,35 @@ def _extract_data_from_h5(
 
         return variable_data
 
+
+def _extract_data_from_nc(
+    file_path: str, extraction_infos: tuple[ExtractionInfo, ...]
+) -> dict[str | int, NDArray[np.generic]]:
+    """Extracts data from a NetCDF (.nc) file."""
+    variable_data: dict[str | int, NDArray[np.generic]] = {}
+
+    with netCDF4.Dataset(file_path, mode="r") as ds:
+        for info in extraction_infos:
+            if isinstance(info.name_or_column, str) and info.name_or_column in ds.variables:
+                var = ds.variables[info.name_or_column]
+
+                data_chunk = var[:]
+
+                # Handle masked arrays (automatically handles _FillValue if defined in NC)
+                if np.ma.is_masked(data_chunk):
+                    if np.issubdtype(data_chunk.dtype, np.floating):
+                        data_chunk = data_chunk.filled(np.nan)
+                    else:
+                        data_chunk = data_chunk.data
+
+                variable_data[info.name_or_column] = np.array(data_chunk)
+            else:
+                logger.warning(
+                    f"Variable {info.name_or_column} not found in {file_path}. "
+                    f"Available: {list(ds.variables.keys())}"
+                )
+
+    return variable_data
 
 def _find_files_with_regex(directory: Path, regex_pattern: str) -> list[Path]:
     """Find files in a directory that match a given regex pattern."""

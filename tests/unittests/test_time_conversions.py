@@ -27,6 +27,9 @@ REF_CDF_EPOCH_QUANTITY = u.Quantity(
     ep.units.cdf_epoch,
 )
 REF_DATENUM_QUANTITY = u.Quantity(7.391864166666666e05, ep.units.datenum)  # calcualted using Matlab
+REF_J2K_QUANTITY = u.Quantity(
+    cdflib.cdfepoch.timestamp_to_tt2000(REF_POSIXTIME_QUANTITY.value) / 1e9,
+    ep.units.j2k)
 
 # Parameterized test data for circular conversions
 # Each tuple is: (start_quantity, target_unit_1, target_unit_2)
@@ -35,6 +38,7 @@ test_data = [
     (REF_POSIXTIME_QUANTITY, ep.units.tt2000, ep.units.datenum),
     (REF_CDF_EPOCH_QUANTITY, ep.units.posixtime, ep.units.datenum),
     (REF_DATENUM_QUANTITY, ep.units.cdf_epoch, ep.units.tt2000),
+    (REF_J2K_QUANTITY, ep.units.posixtime, ep.units.posixtime),
 ]
 
 

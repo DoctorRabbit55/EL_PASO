@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 import cdflib
 import numpy as np
+import astropy
 from astropy import units as u
 from astropy.constants import R_earth  # type:ignore [reportAttributeAccessIssue]
 
@@ -25,9 +26,11 @@ cdf_epoch = u.def_unit("cdf_epoch")
 tt2000 = u.def_unit("tt2000")
 posixtime = u.def_unit("posixtime")
 datenum = u.def_unit("datenum")
+j2k = u.def_unit("j2k")
 
 # Position units
 RE = u.def_unit("RE", R_earth)
+
 
 # -----------------------------------------------------------------------------
 # 2. Time Conversion Functions
@@ -93,6 +96,17 @@ def cdf_epoch_to_datenum(cdf_epoch_array: NDArray[np.floating]) -> NDArray[np.fl
     return posixtime_to_datenum(posix_val)
 
 
+def j2k_to_posixtime(j2k_val: float) -> float:
+    epoch_j2k = astropy.time.Time("J2000", scale="utc")
+    t = epoch_j2k + astropy.time.TimeDelta(j2k_val, format="sec")
+    return t.utc.unix
+
+def posixtime_to_j2k(posixtime_val: float) -> float:
+    t = astropy.time.Time(posixtime_val, format="unix")
+    epoch_j2k = astropy.time.Time("J2000", scale="utc")
+
+    return (t.tt - epoch_j2k).sec
+
 # -----------------------------------------------------------------------------
 # 3. Astropy Equivalencies
 # -----------------------------------------------------------------------------
@@ -157,6 +171,17 @@ cdf_epoch_cdf_tt2000_equiv = [
     )
 ]
 
+# Equivalency: J2K <-> posixtime
+j2k_posixtime_equiv = [
+    (
+        j2k,
+        posixtime,
+        # Convert J2K -> TT2000 -> POSIX
+        lambda x: j2k_to_posixtime(x),
+        # Convert POSIX -> TT2000 -> J2K
+        lambda x: posixtime_to_j2k(x),
+    )
+]
 
 # -----------------------------------------------------------------------------
 # 4. Enable Custom Units and Conversions
@@ -168,6 +193,7 @@ u.add_enabled_units(tt2000)
 u.add_enabled_units(posixtime)
 u.add_enabled_units(datenum)
 u.add_enabled_units(cdf_epoch)
+u.add_enabled_units(j2k)
 
 # Add custom equivalencies for seamless unit conversions
 u.add_enabled_equivalencies(u.dimensionless_angles())
@@ -177,3 +203,4 @@ u.add_enabled_equivalencies(tt2000_datenum_equiv)
 u.add_enabled_equivalencies(cdf_epoch_posixtime_equiv)
 u.add_enabled_equivalencies(datenum_cdf_epoch_equiv)
 u.add_enabled_equivalencies(cdf_epoch_cdf_tt2000_equiv)
+u.add_enabled_equivalencies(j2k_posixtime_equiv)

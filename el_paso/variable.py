@@ -88,7 +88,7 @@ class Variable:
 
     def __init__(
         self,
-        original_unit: u.UnitBase,
+        original_unit: u.UnitBase | str,
         data: NDArray[np.generic] | None = None,
         description: str = "",
         processing_notes: str = "",
@@ -105,7 +105,7 @@ class Variable:
         self._data = np.array([]) if data is None else data
 
         self.metadata = VariableMetadata(
-            unit=original_unit,
+            unit=u.Unit(original_unit),  # type: ignore[reportArgumentType]
             description=description,
             processing_notes=processing_notes,
         )
