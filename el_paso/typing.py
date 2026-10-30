@@ -60,7 +60,7 @@ MagFieldVarTypes: TypeAlias = Literal[
     "f_ce_Eq",
 ]
 
-FixedDimensionName = Literal["Position_components", "min_max", "W_components"]
+FixedDimensionName = Literal["Position_components", "min_max", "north_south", "W_components"]
 
 InternalName: TypeAlias = (
     Literal[
